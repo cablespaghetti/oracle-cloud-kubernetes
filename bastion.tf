@@ -1,3 +1,12 @@
+data "oci_core_images" "bastion" {
+  compartment_id           = oci_identity_compartment.k3s.id
+  operating_system         = "Oracle Autonomous Linux"
+  operating_system_version = "7.9"
+  shape                    = "VM.Standard.E2.1.Micro"
+  sort_by                  = "TIMECREATED"
+  sort_order               = "DESC"
+}
+
 resource "oci_core_network_security_group" "bastion" {
   compartment_id = oci_identity_compartment.k3s.id
   vcn_id         = module.vcn.vcn_id
@@ -32,8 +41,7 @@ resource "oci_core_instance" "bastion" {
   shape               = "VM.Standard.E2.1.Micro"
   display_name        = "k3s-bastion"
   source_details {
-    # Oracle-Linux-8.3-2021.05.12-0
-    source_id   = "ocid1.image.oc1.uk-london-1.aaaaaaaa5muec6pf7r2kkrrt7hviq2pd4h2q4suet5mekcet756ba2ao2eta"
+    source_id   = data.oci_core_images.bastion.images.0.id
     source_type = "image"
   }
   create_vnic_details {

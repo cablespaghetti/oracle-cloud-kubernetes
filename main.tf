@@ -1,3 +1,12 @@
+data "oci_core_images" "k3s" {
+  compartment_id           = oci_identity_compartment.k3s.id
+  operating_system         = "Oracle Linux"
+  operating_system_version = "8"
+  shape                    = "VM.Standard.A1.Flex"
+  sort_by                  = "TIMECREATED"
+  sort_order               = "DESC"
+}
+
 resource "oci_core_instance" "master" {
   availability_domain = "Eaff:UK-LONDON-1-AD-1"
   compartment_id      = oci_identity_compartment.k3s.id
@@ -8,15 +17,14 @@ resource "oci_core_instance" "master" {
     ocpus         = 2
   }
   source_details {
-    # Oracle-Linux-8.3-aarch64-2021.05.12-0
-    source_id   = "ocid1.image.oc1.uk-london-1.aaaaaaaay3vcesonkvlshlv2evtenhbsoyh5ovzwify4qfxc73uxlzy4dntq"
+    source_id   = data.oci_core_images.k3s.images.0.id
     source_type = "image"
   }
   create_vnic_details {
     subnet_id        = oci_core_subnet.private.id
     assign_public_ip = false
   }
-  # prevent the bastion from destroying and recreating itself if the image ocid changes 
+  # prevent the instance from destroying and recreating itself if the image ocid changes 
   lifecycle {
     ignore_changes = [source_details[0].source_id]
   }
@@ -32,15 +40,14 @@ resource "oci_core_instance" "worker1" {
     ocpus         = 1
   }
   source_details {
-    # Oracle-Linux-8.3-aarch64-2021.05.12-0
-    source_id   = "ocid1.image.oc1.uk-london-1.aaaaaaaay3vcesonkvlshlv2evtenhbsoyh5ovzwify4qfxc73uxlzy4dntq"
+    source_id   = data.oci_core_images.k3s.images.0.id
     source_type = "image"
   }
   create_vnic_details {
     subnet_id        = oci_core_subnet.private.id
     assign_public_ip = false
   }
-  # prevent the bastion from destroying and recreating itself if the image ocid changes 
+  # prevent the instance from destroying and recreating itself if the image ocid changes 
   lifecycle {
     ignore_changes = [source_details[0].source_id]
   }
@@ -56,15 +63,14 @@ resource "oci_core_instance" "worker2" {
     ocpus         = 1
   }
   source_details {
-    # Oracle-Linux-8.3-aarch64-2021.05.12-0
-    source_id   = "ocid1.image.oc1.uk-london-1.aaaaaaaay3vcesonkvlshlv2evtenhbsoyh5ovzwify4qfxc73uxlzy4dntq"
+    source_id   = data.oci_core_images.k3s.images.0.id
     source_type = "image"
   }
   create_vnic_details {
     subnet_id        = oci_core_subnet.private.id
     assign_public_ip = false
   }
-  # prevent the bastion from destroying and recreating itself if the image ocid changes 
+  # prevent the instance from destroying and recreating itself if the image ocid changes 
   lifecycle {
     ignore_changes = [source_details[0].source_id]
   }
