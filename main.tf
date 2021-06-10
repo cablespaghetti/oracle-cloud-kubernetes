@@ -35,6 +35,20 @@ resource "oci_core_network_security_group_security_rule" "k3s_egress" {
   destination_type          = "CIDR_BLOCK"
 }
 
+data "template_cloudinit_config" "master" {
+  gzip          = true
+  base64_encode = true
+
+  part {
+    filename     = "master.yaml"
+    content_type = "text/cloud-config"
+    content      = <<EOT
+runcmd:
+ - curl -sfL https://get.k3s.io | sh -
+EOT
+  }
+}
+
 resource "oci_core_instance" "master" {
   availability_domain = "Eaff:UK-LONDON-1-AD-1"
   compartment_id      = oci_identity_compartment.k3s.id
@@ -59,6 +73,7 @@ resource "oci_core_instance" "master" {
   }
   metadata = {
     ssh_authorized_keys = var.ssh_public_key
+    user_data           = data.template_cloudinit_config.master.rendered
   }
 }
 
