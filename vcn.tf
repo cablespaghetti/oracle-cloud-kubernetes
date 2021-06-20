@@ -18,6 +18,11 @@ module "vcn" {
   internet_gateway_enabled     = true
 }
 
+resource "oci_core_security_list" "private" {
+  compartment_id = oci_identity_compartment.k3s.id
+  vcn_id         = module.vcn.vcn_id
+}
+
 resource "oci_core_subnet" "private" {
   cidr_block                = "10.0.0.0/24"
   compartment_id            = oci_identity_compartment.k3s.id
@@ -26,15 +31,21 @@ resource "oci_core_subnet" "private" {
   dns_label                 = "private"
   prohibit_internet_ingress = true
   route_table_id            = module.vcn.nat_route_id
+  security_list_ids         = [oci_core_security_list.private.id]
+}
+
+resource "oci_core_security_list" "public" {
+  compartment_id = oci_identity_compartment.k3s.id
+  vcn_id         = module.vcn.vcn_id
 }
 
 resource "oci_core_subnet" "public" {
-  cidr_block     = "10.0.1.0/24"
-  compartment_id = oci_identity_compartment.k3s.id
-  vcn_id         = module.vcn.vcn_id
-  display_name   = "public"
-  dns_label      = "public"
-  route_table_id = module.vcn.ig_route_id
+  cidr_block        = "10.0.10.0/24"
+  compartment_id    = oci_identity_compartment.k3s.id
+  vcn_id            = module.vcn.vcn_id
+  display_name      = "public"
+  dns_label         = "public"
+  route_table_id    = module.vcn.ig_route_id
+  security_list_ids = [oci_core_security_list.public.id]
 }
-
 
