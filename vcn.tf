@@ -18,11 +18,6 @@ module "vcn" {
   vcn_cidrs               = ["10.200.0.0/16"]
 }
 
-#resource "oci_core_security_list" "private" {
-#  compartment_id = oci_identity_compartment.k3s.id
-#  vcn_id         = module.vcn.vcn_id
-#}
-
 resource "oci_core_subnet" "private" {
   cidr_block                = "10.200.0.0/18"
   compartment_id            = oci_identity_compartment.kubernetes.id
@@ -31,13 +26,7 @@ resource "oci_core_subnet" "private" {
   dns_label                 = "private"
   prohibit_internet_ingress = true
   route_table_id            = module.vcn.nat_route_id
-  #security_list_ids         = [oci_core_security_list.private.id]
 }
-
-#resource "oci_core_security_list" "public" {
-#  compartment_id = oci_identity_compartment.k3s.id
-#  vcn_id         = module.vcn.vcn_id
-#}
 
 resource "oci_core_subnet" "public" {
   cidr_block     = "10.200.64.0/18"
@@ -46,6 +35,5 @@ resource "oci_core_subnet" "public" {
   display_name   = "public"
   dns_label      = "public"
   route_table_id = module.vcn.ig_route_id
-  #security_list_ids = [oci_core_security_list.public.id]
 }
 
