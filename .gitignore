@@ -1,3 +1,6 @@
 .terraform/
+generated/
 env.sh
 backend.tf
+terraform.tfvars
+terraform.tfstate*

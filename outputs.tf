@@ -1,3 +1,3 @@
 output "bastion_ip" {
-  value = oci_core_instance.bastion.public_ip
+  value = module.bastion.bastion_public_ip
 }
