@@ -44,7 +44,7 @@ data "cloudinit_config" "kubernetes_control_plane" {
     content_type = "text/cloud-config"
     content      = <<EOT
 runcmd:
- - curl -sfL https://get.kubernetes.io | INSTALL_K3S_EXEC="server --disable traefik --disable servicelb --disable-cloud-controller" sh -
+ - curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server --disable traefik --disable servicelb --disable-cloud-controller" sh -
 EOT
   }
 }
@@ -60,8 +60,8 @@ resource "oci_core_instance" "kubernetes_control_plane" {
   shape               = "VM.Standard.A1.Flex"
   display_name        = "kubernetes-control-plane"
   shape_config {
-    memory_in_gbs = 8
-    ocpus         = 2
+    memory_in_gbs = 24
+    ocpus         = 4
   }
   source_details {
     source_id   = data.oci_core_images.kubernetes.images.0.id
