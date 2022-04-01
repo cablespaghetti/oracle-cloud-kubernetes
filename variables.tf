@@ -21,4 +21,3 @@ variable "cidr_block" {
   description = "The CIDR /16 block to use for the VCN"
   default     = "10.200.0.0"
 }
-

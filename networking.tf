@@ -1,3 +1,10 @@
+locals {
+  vcn_cidr     = "${var.cidr_block}/16"
+  private_cidr = cidrsubnet(local.vcn_cidr, 2, 0)
+  public_cidr  = cidrsubnet(local.vcn_cidr, 2, 1)
+  bastion_cidr = cidrsubnet(local.vcn_cidr, 8, 254)
+}
+
 resource "oci_identity_compartment" "kubernetes" {
   compartment_id = var.tenancy_ocid
   description    = "Compartment for Terraform resources."
@@ -15,11 +22,11 @@ module "vcn" {
   vcn_name                = "kubernetes"
   create_nat_gateway      = true
   create_internet_gateway = true
-  vcn_cidrs               = ["10.200.0.0/16"]
+  vcn_cidrs               = [local.vcn_cidr]
 }
 
 resource "oci_core_subnet" "private" {
-  cidr_block                = "10.200.0.0/18"
+  cidr_block                = local.private_cidr
   compartment_id            = oci_identity_compartment.kubernetes.id
   vcn_id                    = module.vcn.vcn_id
   display_name              = "private"
@@ -29,7 +36,7 @@ resource "oci_core_subnet" "private" {
 }
 
 resource "oci_core_subnet" "public" {
-  cidr_block     = "10.200.64.0/18"
+  cidr_block     = local.public_cidr
   compartment_id = oci_identity_compartment.kubernetes.id
   vcn_id         = module.vcn.vcn_id
   display_name   = "public"
@@ -37,3 +44,19 @@ resource "oci_core_subnet" "public" {
   route_table_id = module.vcn.ig_route_id
 }
 
+module "bastion" {
+  source              = "oracle-terraform-modules/bastion/oci"
+  version             = "3.1.0"
+  compartment_id      = oci_identity_compartment.kubernetes.id
+  tenancy_id          = var.tenancy_ocid
+  ig_route_id         = module.vcn.ig_route_id
+  vcn_id              = module.vcn.vcn_id
+  bastion_shape       = { "shape" : "VM.Standard.E2.1.Micro" }
+  bastion_timezone    = "UTC"
+  ssh_public_key_path = var.ssh_public_key_path
+  netnum              = 254
+  newbits             = 8
+  providers = {
+    oci.home = oci
+  }
+}
