@@ -1,106 +1,10 @@
-data "oci_core_images" "kubernetes" {
-  compartment_id           = oci_identity_compartment.kubernetes.id
-  operating_system         = "Oracle Linux"
-  operating_system_version = "8"
-  shape                    = "VM.Standard.A1.Flex"
-  sort_by                  = "TIMECREATED"
-  sort_order               = "DESC"
-}
-
-resource "oci_core_network_security_group" "kubernetes" {
-  compartment_id = oci_identity_compartment.kubernetes.id
-  vcn_id         = module.vcn.vcn_id
-  display_name   = "kubernetes"
-}
-
-resource "oci_core_network_security_group_security_rule" "kubernetes_ingress_ssh" {
-  network_security_group_id = oci_core_network_security_group.kubernetes.id
-  protocol                  = 6
-  direction                 = "INGRESS"
-  source                    = local.bastion_cidr
-  source_type               = "CIDR_BLOCK"
-  tcp_options {
-    destination_port_range {
-      min = 22
-      max = 22
-    }
-  }
-}
-
-resource "oci_core_network_security_group_security_rule" "kubernetes_ingress_apiserver" {
-  network_security_group_id = oci_core_network_security_group.kubernetes.id
-  protocol                  = 6
-  direction                 = "INGRESS"
-  source                    = oci_core_network_security_group.kubernetes.id
-  source_type               = "NETWORK_SECURITY_GROUP"
-  tcp_options {
-    destination_port_range {
-      min = 6443
-      max = 6443
-    }
-  }
-}
-
-resource "oci_core_network_security_group_security_rule" "kubernetes_ingress_metrics" {
-  network_security_group_id = oci_core_network_security_group.kubernetes.id
-  protocol                  = 6
-  direction                 = "INGRESS"
-  source                    = oci_core_network_security_group.kubernetes.id
-  source_type               = "NETWORK_SECURITY_GROUP"
-  tcp_options {
-    destination_port_range {
-      min = 10250
-      max = 10250
-    }
-  }
-}
-
-resource "oci_core_network_security_group_security_rule" "kubernetes_ingress_flannel" {
-  network_security_group_id = oci_core_network_security_group.kubernetes.id
-  protocol                  = 17
-  direction                 = "INGRESS"
-  source                    = oci_core_network_security_group.kubernetes.id
-  source_type               = "NETWORK_SECURITY_GROUP"
-  udp_options {
-    destination_port_range {
-      min = 8472
-      max = 8472
-    }
-  }
-}
-
-resource "oci_core_network_security_group_security_rule" "kubernetes_ingress_etcd" {
-  network_security_group_id = oci_core_network_security_group.kubernetes.id
-  protocol                  = 6
-  direction                 = "INGRESS"
-  source                    = oci_core_network_security_group.kubernetes.id
-  source_type               = "NETWORK_SECURITY_GROUP"
-  tcp_options {
-    destination_port_range {
-      min = 2379
-      max = 2380
-    }
-  }
-}
-
-resource "oci_core_network_security_group_security_rule" "kubernetes_egress" {
-  network_security_group_id = oci_core_network_security_group.kubernetes.id
-  protocol                  = "all"
-  direction                 = "EGRESS"
-  destination               = "0.0.0.0/0"
-  destination_type          = "CIDR_BLOCK"
-}
-
-locals {
-  oci_cloud_controller_manager_config = base64encode(<<EOT
-useInstancePrincipals: true
-compartment: ${oci_identity_compartment.kubernetes.id}
-vcn: ${module.vcn.vcn_id}
-loadBalancer:
-  subnet1: ${oci_core_subnet.public.id}
-  securityListManagementMode: All
-EOT
-  )
+resource "random_string" "cluster_token" {
+  length           = 48
+  special          = true
+  number           = true
+  lower            = true
+  upper            = true
+  override_special = "^@~*#%/.+:;_"
 }
 
 data "cloudinit_config" "kubernetes_control_plane" {
@@ -118,37 +22,30 @@ systemctl disable firewalld --now
 # Install htop (because I like it...) and upgrade everything
 dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
 dnf upgrade -y
-dnf install -y htop
-
-# Download and install OCI Cloud Controller Manager Manifests
-mkdir -p /var/lib/rancher/k3s/server/manifests
-curl -sfLo /var/lib/rancher/k3s/server/manifests/oci-cloud-controller-manager-rbac.yaml https://raw.githubusercontent.com/oracle/oci-cloud-controller-manager/v0.13.0/manifests/cloud-controller-manager/oci-cloud-controller-manager-rbac.yaml
-curl -sfLo /var/lib/rancher/k3s/server/manifests/oci-cloud-controller-manager.yaml https://raw.githubusercontent.com/oracle/oci-cloud-controller-manager/v0.13.0/manifests/cloud-controller-manager/oci-cloud-controller-manager.yaml
-
-# Work around bug in node selector in manifest
-sed -i 's/node-role.kubernetes.io\/master: ""/node-role.kubernetes.io\/master: "true"/' /var/lib/rancher/k3s/server/manifests/oci-cloud-controller-manager.yaml
+dnf install -y htop python36-oci-cli
 
 # Install K3S
-export INSTALL_K3S_EXEC="server --disable traefik --disable servicelb --disable-cloud-controller"
-export INSTALL_K3S_CHANNEL=latest
-curl -sfL https://get.k3s.io | sh -
+export OCI_CLI_AUTH=instance_principal
+first_instance=$(oci compute-management instance-pool list-instances --compartment-id $(oci-metadata --value-only -g compartmentId) --instance-pool-id $(oci-metadata --value-only -g instancePoolId) --sort-by TIMECREATED --sort-order ASC | jq -r .data[0].id)
+instance_id=$(oci-metadata -g id --value-only)
 
-EOT
-  }
-  part {
-    filename     = "oci_cloud_controller_manager_secret.yaml"
-    content_type = "text/cloud-config"
-    content      = <<EOT
-write_files:
-- content: |
-    apiVersion: v1
-    kind: Secret
-    metadata:
-      name: oci-cloud-controller-manager
-      namespace: kube-system
-    data:
-      cloud-provider.yaml: ${local.oci_cloud_controller_manager_config}
-  path: /var/lib/rancher/k3s/server/manifests/oci-cloud-controller-manager-secret.yaml
+export INSTALL_K3S_CHANNEL=latest
+export K3S_TOKEN="${random_string.cluster_token.result}"
+
+# Credit to Lorenzo Garuti for script logic: https://github.com/garutilorenzo/k3s-aws-terraform-cluster
+if [[ "$first_instance" == "$instance_id" ]]; then
+    echo "I'm the first! Woohoo! Cluster init!"
+    export INSTALL_K3S_EXEC="server --disable traefik --disable servicelb --disable-cloud-controller --cluster-init"
+else
+    echo "Someone else got there first. Cluster join..."
+    export INSTALL_K3S_EXEC="server --disable traefik --disable servicelb --disable-cloud-controller --server https://${oci_load_balancer_load_balancer.kubernetes_control_plane.ip_address_details[0].ip_address}:6443"
+fi
+
+until (curl -sfL https://get.k3s.io | sh -); do
+    echo 'k3s did not install correctly, retrying'
+    sleep 2
+done
+
 EOT
   }
 }
@@ -158,30 +55,93 @@ data "oci_identity_availability_domain" "ad" {
   ad_number      = 1
 }
 
-resource "oci_core_instance" "kubernetes_control_plane" {
-  availability_domain = data.oci_identity_availability_domain.ad.name
-  compartment_id      = oci_identity_compartment.kubernetes.id
-  shape               = "VM.Standard.A1.Flex"
-  display_name        = "kubernetes-control-plane"
-  shape_config {
-    memory_in_gbs = 24
-    ocpus         = 4
+resource "oci_core_instance_configuration" "kubernetes_control_plane" {
+  compartment_id = oci_identity_compartment.kubernetes.id
+  display_name   = "kubernetes_control_plane"
+
+  instance_details {
+    instance_type = "compute"
+
+    launch_details {
+
+      agent_config {
+        is_management_disabled = "false"
+        is_monitoring_disabled = "false"
+
+        plugins_config {
+          desired_state = "DISABLED"
+          name          = "Vulnerability Scanning"
+        }
+
+        plugins_config {
+          desired_state = "ENABLED"
+          name          = "Compute Instance Monitoring"
+        }
+
+        plugins_config {
+          desired_state = "DISABLED"
+          name          = "Bastion"
+        }
+      }
+
+      availability_domain = data.oci_identity_availability_domain.ad.name
+      compartment_id      = oci_identity_compartment.kubernetes.id
+
+      create_vnic_details {
+        assign_public_ip = false
+        subnet_id        = oci_core_subnet.private.id
+        nsg_ids          = [oci_core_network_security_group.kubernetes.id]
+      }
+
+      display_name = "Kubernetes Control Plane Node"
+
+      metadata = {
+        ssh_authorized_keys = file(var.ssh_public_key_path)
+        user_data           = data.cloudinit_config.kubernetes_control_plane.rendered
+      }
+
+      shape = "VM.Standard.A1.Flex"
+      shape_config {
+        memory_in_gbs = "6"
+        ocpus         = "1"
+      }
+      source_details {
+        image_id    = data.oci_core_images.kubernetes.images.0.id
+        source_type = "image"
+      }
+    }
   }
-  source_details {
-    source_id   = data.oci_core_images.kubernetes.images.0.id
-    source_type = "image"
-  }
-  create_vnic_details {
-    subnet_id        = oci_core_subnet.private.id
-    assign_public_ip = false
-    nsg_ids          = [oci_core_network_security_group.kubernetes.id]
-  }
-  # prevent the instance from destroying and recreating itself if the image ocid changes 
-  lifecycle {
-    ignore_changes = [source_details[0].source_id]
-  }
-  metadata = {
-    ssh_authorized_keys = file(var.ssh_public_key_path)
-    user_data           = data.cloudinit_config.kubernetes_control_plane.rendered
-  }
+  freeform_tags = local.freeform_tags
 }
+
+resource "oci_core_instance_pool" "kubernetes_control_plane" {
+  depends_on = [
+    oci_identity_dynamic_group.kubernetes_control_plane,
+    oci_identity_policy.kubernetes_control_plane
+  ]
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  display_name              = "kubernetes_control_plane"
+  compartment_id            = oci_identity_compartment.kubernetes.id
+  instance_configuration_id = oci_core_instance_configuration.kubernetes_control_plane.id
+
+  placement_configurations {
+    availability_domain = data.oci_identity_availability_domain.ad.name
+    primary_subnet_id   = oci_core_subnet.private.id
+  }
+
+  load_balancers {
+    load_balancer_id = oci_load_balancer_load_balancer.kubernetes_control_plane.id
+    backend_set_name = oci_load_balancer_backend_set.kubernetes_control_plane.name
+    port             = 6443
+    vnic_selection   = "PrimaryVnic"
+  }
+
+  size = 3
+
+  freeform_tags = local.freeform_tags
+}
+

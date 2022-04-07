@@ -1,17 +1,3 @@
-locals {
-  vcn_cidr     = "${var.cidr_block}/16"
-  private_cidr = cidrsubnet(local.vcn_cidr, 2, 0)
-  public_cidr  = cidrsubnet(local.vcn_cidr, 2, 1)
-  bastion_cidr = cidrsubnet(local.vcn_cidr, 8, 254)
-}
-
-resource "oci_identity_compartment" "kubernetes" {
-  compartment_id = var.tenancy_ocid
-  description    = "Compartment for Terraform resources."
-  name           = var.compartment_name
-  enable_delete  = true
-}
-
 module "vcn" {
   source                  = "oracle-terraform-modules/vcn/oci"
   version                 = "3.4.0"
@@ -23,6 +9,7 @@ module "vcn" {
   create_nat_gateway      = true
   create_internet_gateway = true
   vcn_cidrs               = [local.vcn_cidr]
+  freeform_tags           = local.freeform_tags
 }
 
 resource "oci_core_subnet" "private" {
@@ -33,6 +20,7 @@ resource "oci_core_subnet" "private" {
   dns_label                 = "private"
   prohibit_internet_ingress = true
   route_table_id            = module.vcn.nat_route_id
+  freeform_tags             = local.freeform_tags
 }
 
 resource "oci_core_subnet" "public" {
@@ -42,6 +30,7 @@ resource "oci_core_subnet" "public" {
   display_name   = "public"
   dns_label      = "public"
   route_table_id = module.vcn.ig_route_id
+  freeform_tags  = local.freeform_tags
 }
 
 module "bastion" {
@@ -59,4 +48,5 @@ module "bastion" {
   providers = {
     oci.home = oci
   }
+  freeform_tags = local.freeform_tags
 }
