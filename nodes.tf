@@ -138,9 +138,16 @@ resource "oci_core_instance_pool" "kubernetes_control_plane" {
   }
 
   load_balancers {
-    load_balancer_id = oci_load_balancer_load_balancer.kubernetes_control_plane.id
+    load_balancer_id = oci_load_balancer_load_balancer.kubernetes.id
     backend_set_name = oci_load_balancer_backend_set.kubernetes_control_plane.name
     port             = 6443
+    vnic_selection   = "PrimaryVnic"
+  }
+
+  load_balancers {
+    load_balancer_id = oci_load_balancer_load_balancer.kubernetes.id
+    backend_set_name = oci_load_balancer_backend_set.kubernetes_https.name
+    port             = 443
     vnic_selection   = "PrimaryVnic"
   }
 

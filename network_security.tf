@@ -14,6 +14,13 @@ resource "oci_core_network_security_group" "kubernetes" {
   freeform_tags  = local.freeform_tags
 }
 
+resource "oci_core_network_security_group" "kubernetes_lb" {
+  compartment_id = oci_identity_compartment.kubernetes.id
+  vcn_id         = module.vcn.vcn_id
+  display_name   = "kubernetes_control_plane_lb"
+  freeform_tags  = local.freeform_tags
+}
+
 resource "oci_core_network_security_group_security_rule" "kubernetes_ingress_ssh" {
   network_security_group_id = oci_core_network_security_group.kubernetes.id
   protocol                  = 6
@@ -90,4 +97,60 @@ resource "oci_core_network_security_group_security_rule" "kubernetes_egress" {
   direction                 = "EGRESS"
   destination               = "0.0.0.0/0"
   destination_type          = "CIDR_BLOCK"
+}
+
+resource "oci_core_network_security_group_security_rule" "kubernetes_ingress_apiserver_lb" {
+  network_security_group_id = oci_core_network_security_group.kubernetes.id
+  protocol                  = 6
+  direction                 = "INGRESS"
+  source                    = oci_core_network_security_group.kubernetes_lb.id
+  source_type               = "NETWORK_SECURITY_GROUP"
+  tcp_options {
+    destination_port_range {
+      min = 6443
+      max = 6443
+    }
+  }
+}
+
+resource "oci_core_network_security_group_security_rule" "kubernetes_ingress_https_lb" {
+  network_security_group_id = oci_core_network_security_group.kubernetes.id
+  protocol                  = 6
+  direction                 = "INGRESS"
+  source                    = oci_core_network_security_group.kubernetes_lb.id
+  source_type               = "NETWORK_SECURITY_GROUP"
+  tcp_options {
+    destination_port_range {
+      min = 443
+      max = 443
+    }
+  }
+}
+
+resource "oci_core_network_security_group_security_rule" "kubernetes_lb_ingress_apiserver_internet" {
+  network_security_group_id = oci_core_network_security_group.kubernetes_lb.id
+  protocol                  = 6
+  direction                 = "INGRESS"
+  source                    = "0.0.0.0/0"
+  source_type               = "CIDR_BLOCK"
+  tcp_options {
+    destination_port_range {
+      min = 6443
+      max = 6443
+    }
+  }
+}
+
+resource "oci_core_network_security_group_security_rule" "kubernetes_lb_ingress_https_internet" {
+  network_security_group_id = oci_core_network_security_group.kubernetes_lb.id
+  protocol                  = 6
+  direction                 = "INGRESS"
+  source                    = "0.0.0.0/0"
+  source_type               = "CIDR_BLOCK"
+  tcp_options {
+    destination_port_range {
+      min = 443
+      max = 443
+    }
+  }
 }

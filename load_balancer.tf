@@ -1,12 +1,11 @@
-resource "oci_load_balancer_load_balancer" "kubernetes_control_plane" {
+resource "oci_load_balancer_load_balancer" "kubernetes" {
   compartment_id = oci_identity_compartment.kubernetes.id
   display_name   = "kubernetes_control_plane"
-  subnet_ids     = [oci_core_subnet.private.id]
+  subnet_ids     = [oci_core_subnet.public.id]
   shape          = "flexible"
 
   freeform_tags              = local.freeform_tags
-  is_private                 = true
-  network_security_group_ids = [oci_core_network_security_group.kubernetes.id]
+  network_security_group_ids = [oci_core_network_security_group.kubernetes_lb.id]
   shape_details {
     maximum_bandwidth_in_mbps = 10
     minimum_bandwidth_in_mbps = 10
@@ -19,14 +18,32 @@ resource "oci_load_balancer_backend_set" "kubernetes_control_plane" {
     port     = 6443
   }
   name             = "kubernetes_control_plane"
-  load_balancer_id = oci_load_balancer_load_balancer.kubernetes_control_plane.id
+  load_balancer_id = oci_load_balancer_load_balancer.kubernetes.id
   policy           = "LEAST_CONNECTIONS"
 }
 
 resource "oci_load_balancer_listener" "kubernetes_control_plane" {
   default_backend_set_name = oci_load_balancer_backend_set.kubernetes_control_plane.name
   name                     = "kubernetes_control_plane"
-  load_balancer_id         = oci_load_balancer_load_balancer.kubernetes_control_plane.id
+  load_balancer_id         = oci_load_balancer_load_balancer.kubernetes.id
   port                     = 6443
+  protocol                 = "TCP"
+}
+
+resource "oci_load_balancer_backend_set" "kubernetes_https" {
+  health_checker {
+    protocol = "TCP"
+    port     = 443
+  }
+  name             = "kubernetes_https"
+  load_balancer_id = oci_load_balancer_load_balancer.kubernetes.id
+  policy           = "LEAST_CONNECTIONS"
+}
+
+resource "oci_load_balancer_listener" "kubernetes_https" {
+  default_backend_set_name = oci_load_balancer_backend_set.kubernetes_https.name
+  name                     = "kubernetes_https"
+  load_balancer_id         = oci_load_balancer_load_balancer.kubernetes.id
+  port                     = 443
   protocol                 = "TCP"
 }
