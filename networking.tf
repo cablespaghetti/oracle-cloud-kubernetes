@@ -4,8 +4,8 @@ module "vcn" {
   compartment_id          = oci_identity_compartment.kubernetes.id
   drg_display_name        = "gateway"
   region                  = var.region
-  vcn_dns_label           = "kubernetes"
-  vcn_name                = "kubernetes"
+  vcn_dns_label           = var.environment_name
+  vcn_name                = var.environment_name
   create_nat_gateway      = true
   create_internet_gateway = true
   vcn_cidrs               = [local.vcn_cidr]

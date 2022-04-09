@@ -38,7 +38,7 @@ if [[ "$first_instance" == "$instance_id" ]]; then
     export INSTALL_K3S_EXEC="server --disable traefik --disable servicelb --disable-cloud-controller --cluster-init"
 else
     echo "Someone else got there first. Cluster join..."
-    export INSTALL_K3S_EXEC="server --disable traefik --disable servicelb --disable-cloud-controller --server https://${oci_load_balancer_load_balancer.kubernetes_control_plane.ip_address_details[0].ip_address}:6443"
+    export INSTALL_K3S_EXEC="server --disable traefik --disable servicelb --disable-cloud-controller --server https://${oci_load_balancer_load_balancer.kubernetes.ip_address_details[0].ip_address}:6443"
 fi
 
 until (curl -sfL https://get.k3s.io | sh -); do
@@ -60,7 +60,7 @@ resource "oci_core_instance_configuration" "kubernetes_control_plane" {
     oci_identity_tag.instance_group
   ]
   compartment_id = oci_identity_compartment.kubernetes.id
-  display_name   = "kubernetes_control_plane"
+  display_name   = local.resource_name
 
   instance_details {
     instance_type = "compute"
@@ -89,7 +89,7 @@ resource "oci_core_instance_configuration" "kubernetes_control_plane" {
 
       availability_domain = data.oci_identity_availability_domain.ad.name
       compartment_id      = oci_identity_compartment.kubernetes.id
-      defined_tags        = { "Security.Instance-Group" = "kubernetes_control_plane" }
+      defined_tags        = { "Security.Instance-Group" = local.resource_name }
 
       create_vnic_details {
         assign_public_ip = false
@@ -97,7 +97,7 @@ resource "oci_core_instance_configuration" "kubernetes_control_plane" {
         nsg_ids          = [oci_core_network_security_group.kubernetes.id]
       }
 
-      display_name = "Kubernetes Control Plane Node"
+      display_name = local.resource_name
 
       metadata = {
         ssh_authorized_keys = file(var.ssh_public_key_path)
@@ -128,7 +128,7 @@ resource "oci_core_instance_pool" "kubernetes_control_plane" {
     create_before_destroy = true
   }
 
-  display_name              = "kubernetes_control_plane"
+  display_name              = local.resource_name
   compartment_id            = oci_identity_compartment.kubernetes.id
   instance_configuration_id = oci_core_instance_configuration.kubernetes_control_plane.id
 
@@ -155,4 +155,3 @@ resource "oci_core_instance_pool" "kubernetes_control_plane" {
 
   freeform_tags = local.freeform_tags
 }
-

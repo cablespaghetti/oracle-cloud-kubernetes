@@ -24,17 +24,17 @@ resource "oci_identity_dynamic_group" "kubernetes_control_plane" {
   matching_rule  = <<EOT
   All {
     instance.compartment.id = '${oci_identity_compartment.kubernetes.id}',
-    tag.Security.Instance-Group.value = 'kubernetes_control_plane'
+    tag.Security.Instance-Group.value = '${local.resource_name}'
   }
 EOT
-  name           = "kubernetes_control_plane"
+  name           = local.resource_name
   freeform_tags  = local.freeform_tags
 }
 
 resource "oci_identity_policy" "kubernetes_control_plane" {
   compartment_id = var.tenancy_ocid
   description    = "Policy to allow ${oci_identity_dynamic_group.kubernetes_control_plane.name} use OCI API"
-  name           = "kubernetes_control_plane"
+  name           = local.resource_name
   statements = [
     "allow dynamic-group ${oci_identity_dynamic_group.kubernetes_control_plane.name} to read instance-family in tenancy",
     "allow dynamic-group ${oci_identity_dynamic_group.kubernetes_control_plane.name} to read compute-management-family in tenancy"

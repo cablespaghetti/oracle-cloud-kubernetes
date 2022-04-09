@@ -10,14 +10,14 @@ data "oci_core_images" "kubernetes" {
 resource "oci_core_network_security_group" "kubernetes" {
   compartment_id = oci_identity_compartment.kubernetes.id
   vcn_id         = module.vcn.vcn_id
-  display_name   = "kubernetes_control_plane"
+  display_name   = local.resource_name
   freeform_tags  = local.freeform_tags
 }
 
 resource "oci_core_network_security_group" "kubernetes_lb" {
   compartment_id = oci_identity_compartment.kubernetes.id
   vcn_id         = module.vcn.vcn_id
-  display_name   = "kubernetes_control_plane_lb"
+  display_name   = "${local.resource_name}-lb"
   freeform_tags  = local.freeform_tags
 }
 
