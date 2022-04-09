@@ -6,10 +6,27 @@ resource "oci_identity_compartment" "kubernetes" {
   freeform_tags  = local.freeform_tags
 }
 
+resource "oci_identity_tag_namespace" "security" {
+  compartment_id = oci_identity_compartment.kubernetes.id
+  description    = "Tags used to assign identity policies via dynamic groups"
+  name           = "Security"
+}
+
+resource "oci_identity_tag" "instance_group" {
+  description      = "Used to define the group of instances to determine dynamic group membership"
+  name             = "Instance-Group"
+  tag_namespace_id = oci_identity_tag_namespace.security.id
+}
+
 resource "oci_identity_dynamic_group" "kubernetes_control_plane" {
   compartment_id = var.tenancy_ocid
-  description    = "Dynamic group which contains all instance in this compartment"
-  matching_rule  = "All {instance.compartment.id = '${oci_identity_compartment.kubernetes.id}'}"
+  description    = "Dynamic group which contains instances tagged as Kubernetes Control Plane nodes"
+  matching_rule  = <<EOT
+  All {
+    instance.compartment.id = '${oci_identity_compartment.kubernetes.id}',
+    tag.Security.Instance-Group.value = 'kubernetes_control_plane'
+  }
+EOT
   name           = "kubernetes_control_plane"
   freeform_tags  = local.freeform_tags
 }

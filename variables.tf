@@ -22,6 +22,11 @@ variable "cidr_block" {
   default     = "10.200.0.0"
 }
 
+variable "k3s_version" {
+  description = "The GitHub tag to use for k3s installation"
+  default     = "v1.23.5+k3s1"
+}
+
 locals {
   freeform_tags = {
     "provisioner" = "terraform"

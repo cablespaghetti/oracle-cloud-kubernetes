@@ -29,7 +29,7 @@ export OCI_CLI_AUTH=instance_principal
 first_instance=$(oci compute-management instance-pool list-instances --compartment-id $(oci-metadata --value-only -g compartmentId) --instance-pool-id $(oci-metadata --value-only -g instancePoolId) --sort-by TIMECREATED --sort-order ASC | jq -r .data[0].id)
 instance_id=$(oci-metadata -g id --value-only)
 
-export INSTALL_K3S_CHANNEL=latest
+export INSTALL_K3S_VERSION=${var.k3s_version}
 export K3S_TOKEN="${random_string.cluster_token.result}"
 
 # Credit to Lorenzo Garuti for script logic: https://github.com/garutilorenzo/k3s-aws-terraform-cluster
@@ -56,6 +56,9 @@ data "oci_identity_availability_domain" "ad" {
 }
 
 resource "oci_core_instance_configuration" "kubernetes_control_plane" {
+  depends_on = [
+    oci_identity_tag.instance_group
+  ]
   compartment_id = oci_identity_compartment.kubernetes.id
   display_name   = "kubernetes_control_plane"
 
@@ -86,6 +89,7 @@ resource "oci_core_instance_configuration" "kubernetes_control_plane" {
 
       availability_domain = data.oci_identity_availability_domain.ad.name
       compartment_id      = oci_identity_compartment.kubernetes.id
+      defined_tags        = { "Security.Instance-Group" = "kubernetes_control_plane" }
 
       create_vnic_details {
         assign_public_ip = false
