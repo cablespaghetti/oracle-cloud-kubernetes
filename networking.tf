@@ -35,7 +35,7 @@ resource "oci_core_subnet" "private" {
   cidr_block                = local.private_cidr
   compartment_id            = oci_identity_compartment.kubernetes.id
   vcn_id                    = module.vcn.vcn_id
-  display_name              = "private"
+  display_name              = "${var.environment_name}-private"
   dns_label                 = "private"
   prohibit_internet_ingress = true
   route_table_id            = module.vcn.nat_route_id
@@ -47,9 +47,17 @@ resource "oci_core_subnet" "public" {
   cidr_block     = local.public_cidr
   compartment_id = oci_identity_compartment.kubernetes.id
   vcn_id         = module.vcn.vcn_id
-  display_name   = "public"
+  display_name   = "${var.environment_name}-public"
   dns_label      = "public"
   route_table_id = module.vcn.ig_route_id
   freeform_tags  = local.freeform_tags
 }
 
+resource "oci_bastion_bastion" "bastion" {
+  bastion_type                 = "STANDARD"
+  compartment_id               = oci_identity_compartment.kubernetes.id
+  target_subnet_id             = oci_core_subnet.private.id
+  client_cidr_block_allow_list = ["0.0.0.0/0"]
+  freeform_tags                = local.freeform_tags
+  name                         = "${var.environment_name}-private"
+}
