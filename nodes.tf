@@ -82,7 +82,7 @@ resource "oci_core_instance_configuration" "kubernetes_control_plane" {
         }
 
         plugins_config {
-          desired_state = "DISABLED"
+          desired_state = "ENABLED"
           name          = "Bastion"
         }
       }

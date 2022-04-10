@@ -36,5 +36,4 @@ locals {
   vcn_cidr      = "${var.cidr_block}/16"
   private_cidr  = cidrsubnet(local.vcn_cidr, 2, 0)
   public_cidr   = cidrsubnet(local.vcn_cidr, 2, 1)
-  bastion_cidr  = cidrsubnet(local.vcn_cidr, 8, 254)
 }
