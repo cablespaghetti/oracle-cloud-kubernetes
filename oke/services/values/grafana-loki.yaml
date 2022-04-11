@@ -1,0 +1,21 @@
+serviceMonitor:
+  enabled: true
+  additionalLabels:
+    release: prometheus
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 1
+    memory: 512Mi
+# Configure for 28 day retention on persistent volume
+persistence:
+  enabled: true
+  size: 10Gi
+config:
+  chunk_store_config:
+    max_look_back_period: 672h
+  table_manager:
+    retention_deletes_enabled: true
+    retention_period: 672h

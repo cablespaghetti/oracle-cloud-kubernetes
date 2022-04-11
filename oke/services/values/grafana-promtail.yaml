@@ -1,0 +1,27 @@
+defaultVolumes:
+  - name: containers
+    hostPath:
+      path: /u01/data/docker/containers
+  - name: pods
+    hostPath:
+      path: /var/log/pods
+defaultVolumeMounts:
+  - name: containers
+    mountPath: /u01/data/docker/containers
+    readOnly: true
+  - name: pods
+    mountPath: /var/log/pods
+    readOnly: true
+serviceMonitor:
+  enabled: true
+  labels:
+    release: prometheus
+config:
+  lokiAddress: http://loki:3100/loki/api/v1/push
+resources:
+  requests:
+    cpu: 25m
+    memory: 64Mi
+  limits:
+    cpu: 0.5
+    memory: 128Mi

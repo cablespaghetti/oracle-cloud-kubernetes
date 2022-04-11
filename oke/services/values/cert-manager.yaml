@@ -1,0 +1,24 @@
+installCRDs: true
+resources:
+  requests:
+    cpu: 5m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 128Mi
+webhook:
+  resources:
+    requests:
+      cpu: 5m
+      memory: 16Mi
+    limits:
+      cpu: 500m
+      memory: 128Mi
+cainjector:
+  resources:
+    requests:
+      cpu: 5m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi

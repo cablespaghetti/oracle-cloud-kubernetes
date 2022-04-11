@@ -1,0 +1,51 @@
+controller:
+  service:
+    annotations:
+      service.beta.kubernetes.io/oci-load-balancer-shape: flexible
+      service.beta.kubernetes.io/oci-load-balancer-shape-flex-min: 10
+      service.beta.kubernetes.io/oci-load-balancer-shape-flex-max: 10
+  config:
+    use-proxy-protocol: "false"
+    server-tokens: "false"
+    enable-brotli: "true"
+    use-forwarded-headers: "true"
+  admissionWebhooks:
+    timeoutSeconds: 30
+  publishService:
+    enabled: true
+  extraArgs:
+    update-status-on-shutdown: "false"
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 1
+    type: RollingUpdate
+  ingressClassResource:
+    enabled: true
+    default: true
+  replicaCount: 2
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      additionalLabels:
+        release: prometheus
+    prometheusRule:
+      enabled: true
+      additionalLabels:
+        release: prometheus
+      rules:
+        - alert: Ingress-NGINXConfigFailed
+          expr: count(nginx_ingress_controller_config_last_reload_successful == 0) > 0
+          for: 1s
+          labels:
+            severity: critical
+          annotations:
+            description: bad ingress config - nginx config test failed
+            summary: uninstall the latest ingress changes to allow config reloads to resume
+  resources:
+    limits:
+      cpu: 1
+      memory: 256Mi
+    requests:
+      cpu: 10m
+      memory: 128Mi
