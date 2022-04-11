@@ -1,0 +1,35 @@
+#!/bin/bash
+# Disable and stop firewalld as per k3s docs
+systemctl disable firewalld --now
+
+# Install htop (because I like it...) and upgrade everything
+dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+dnf upgrade -y
+dnf install -y htop python36-oci-cli
+
+# Install K3S
+export INSTALL_K3S_VERSION="${k3s_version}"
+export K3S_TOKEN="${k3s_token}"
+
+%{ if node_role == "control-plane" }
+# Credit to Lorenzo Garuti for script logic: https://github.com/garutilorenzo/k3s-aws-terraform-cluster
+# Find out OCID of the first node to be created by the instance-pool and whether it is us. Winner gets to be first control plane node.
+export OCI_CLI_AUTH=instance_principal
+first_instance=$(oci compute-management instance-pool list-instances --compartment-id $(oci-metadata --value-only -g compartmentId) --instance-pool-id $(oci-metadata --value-only -g instancePoolId) --sort-by TIMECREATED --sort-order ASC | jq -r .data[0].id)
+instance_id=$(oci-metadata -g id --value-only)
+
+if [[ "$first_instance" == "$instance_id" ]]; then
+    echo "I'm the first! Woohoo! Cluster init!"
+    export INSTALL_K3S_EXEC="server --disable traefik --disable servicelb --disable-cloud-controller --cluster-init"
+else
+    echo "Someone else got there first. Cluster join..."
+    export INSTALL_K3S_EXEC="server --disable traefik --disable servicelb --disable-cloud-controller --server https://${lb_ip_address}:6443"
+fi
+%{ else }
+export INSTALL_K3S_EXEC="agent --server https://${lb_ip_address}:6443"
+%{ endif }
+
+until (curl -sfL https://get.k3s.io | sh -); do
+    echo 'k3s did not install correctly, retrying'
+    sleep 2
+done
