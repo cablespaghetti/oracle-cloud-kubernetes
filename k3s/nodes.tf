@@ -26,6 +26,15 @@ data "cloudinit_config" "kubernetes_control_plane" {
       lb_ip_address = oci_load_balancer_load_balancer.kubernetes.ip_address_details[0].ip_address
     })
   }
+
+  part {
+    filename     = "disableswap.yaml"
+    content_type = "text/cloud-config"
+    content      = <<EOT
+mounts:
+- [ swap, null ]
+EOT
+  }
 }
 
 resource "oci_core_instance_configuration" "kubernetes_control_plane" {
@@ -47,6 +56,11 @@ resource "oci_core_instance_configuration" "kubernetes_control_plane" {
         plugins_config {
           desired_state = "DISABLED"
           name          = "Vulnerability Scanning"
+        }
+
+        plugins_config {
+          desired_state = "DISABLED"
+          name          = "OS Management Service Agent"
         }
 
         plugins_config {
@@ -143,6 +157,15 @@ data "cloudinit_config" "kubernetes_worker" {
       lb_ip_address = oci_load_balancer_load_balancer.kubernetes.ip_address_details[0].ip_address
     })
   }
+
+  part {
+    filename     = "disableswap.yaml"
+    content_type = "text/cloud-config"
+    content      = <<EOT
+mounts:
+- [ swap, null ]
+EOT
+  }
 }
 
 resource "oci_core_instance_configuration" "kubernetes_worker" {
@@ -164,6 +187,11 @@ resource "oci_core_instance_configuration" "kubernetes_worker" {
         plugins_config {
           desired_state = "DISABLED"
           name          = "Vulnerability Scanning"
+        }
+
+        plugins_config {
+          desired_state = "DISABLED"
+          name          = "OS Management Service Agent"
         }
 
         plugins_config {

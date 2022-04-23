@@ -1,6 +1,8 @@
 #!/bin/bash
-# Disable and stop firewalld as per k3s docs
+# Disable and stop firewalld as per k3s docs and other memory hogs we don't need
 systemctl disable firewalld --now
+systemctl disable sssd --now
+systemctl disable tuned --now
 
 # Install htop (because I like it...) and upgrade everything
 dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm

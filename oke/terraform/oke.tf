@@ -8,21 +8,24 @@ resource "oci_identity_compartment" "oke" {
 module "oke" {
   source = "oracle-terraform-modules/oke/oci"
 
-  api_fingerprint      = var.fingerprint
-  api_private_key_path = var.private_key_path
-  compartment_id       = oci_identity_compartment.oke.id
+  compartment_id = oci_identity_compartment.oke.id
 
   region              = var.region
+  home_region         = var.region
   tenancy_id          = var.tenancy_ocid
-  user_id             = var.user_ocid
-  existing_key_id     = ""
-  image_signing_keys  = []
   ssh_public_key_path = var.ssh_public_key_path
-  operator_enabled    = false
-  bastion_enabled     = false
-
-  kubernetes_version = "v1.20.8"
-
+  create_bastion_host = false
+  create_operator     = false
+  kubernetes_version  = "v1.22.5"
+  subnets = {
+    bastion  = { netnum = 0, newbits = 13 }
+    operator = { netnum = 1, newbits = 13 }
+    cp       = { netnum = 2, newbits = 13 }
+    int_lb   = { netnum = 16, newbits = 11 }
+    pub_lb   = { netnum = 17, newbits = 11 }
+    workers  = { netnum = 1, newbits = 2 }
+    fss      = { netnum = 18, newbits = 11 }
+  }
   node_pools = {
     np1 = {
       boot_volume_size = 50
@@ -31,5 +34,8 @@ module "oke" {
       shape            = "VM.Standard.A1.Flex"
       memory           = 12
     }
+  }
+  providers = {
+    oci.home = oci
   }
 }
