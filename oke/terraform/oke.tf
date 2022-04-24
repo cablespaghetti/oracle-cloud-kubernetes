@@ -28,6 +28,7 @@ module "oke" {
     shape = "VM.Standard.E2.1.Micro",
   }
   bastion_image_id            = data.oci_core_images.bastion.images.0.id
+  allow_worker_ssh_access     = true
   control_plane_allowed_cidrs = ["0.0.0.0/0"]
   kubernetes_version          = "v1.22.5"
   subnets = {
