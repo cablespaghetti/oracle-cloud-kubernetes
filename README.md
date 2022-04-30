@@ -15,7 +15,7 @@ I make no promises to keep this repo up to date, but it should serve as a good e
 
 You will need an account on [Oracle Cloud](https://cloud.oracle.com). You'll be given some credits (£250 in the UK) initially but you shouldn't see them being used by anything in this repository; everything should be covered by the [Always Free resourcs](https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm) and OKE is free anyway.
 
-When your account is activated you'll need to get some details to populate the `terraform/terraform.tfvars` file, which are used to authentiate to your account. The information of how to get these details are in [Oracle's Documentation](https://docs.oracle.com/en-us/iaas/Content/API/SDKDocs/terraformproviderconfiguration.htm#configuring_the_terraform_provider).
+When your account is activated you'll need to install and configure the [OCI CLI](https://docs.oracle.com/en-us/iaas/Content/API/Concepts/cliconcepts.htm) get some details to populate the `terraform.tfvars` file, which are used to authentiate to your account. The information of how to get these details are in [Oracle's Documentation](https://docs.oracle.com/en-us/iaas/Content/API/SDKDocs/terraformproviderconfiguration.htm#configuring_the_terraform_provider).
 
 At the end of the trial period you will need to convert your account to a paid account rather than leaving it as a free tier account. This is because whilst OKE is free, it is not supported (yet) on a free account. [The documentation](https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier.htm) also says that the Ampere instances will be terminated and need reprovisioning, although I didn't encounter this.
 
@@ -23,7 +23,7 @@ I recommend you setup [Budgets](https://docs.oracle.com/en-us/iaas/Content/Billi
 
 ### Applying the Terraform
 
-With the account created and `terraform.tfvars` file populated, creating your cluster should then be as simple as opening a terminal in the `terraform` directory and running `terraform init` followed by `terraform apply`.
+With the account created and `terraform.tfvars` file populated, creating your cluster should then be as simple as opening a terminal in the relevant directory and running `terraform init` followed by `terraform apply`.
 
 If you want to use [Remote State](https://www.terraform.io/docs/language/state/remote.html) for your Terraform state file you will need to perform additional configuration. I am storing mine in OCI Object Storage using a Pre Authenticated Request URL, using the method in [this medium post](https://medium.com/oracledevs/storing-terraform-remote-state-to-oracle-cloud-infrastructure-object-storage-b32fe7402781). You could also use Oracle Cloud's [Resource Manager](https://docs.oracle.com/en-us/iaas/Content/ResourceManager/Concepts/resourcemanager.htm) managed Terraform service.
 
