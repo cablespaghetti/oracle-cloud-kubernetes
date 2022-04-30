@@ -91,6 +91,20 @@ resource "oci_core_network_security_group_security_rule" "kubernetes_ingress_etc
   }
 }
 
+resource "oci_core_network_security_group_security_rule" "kubernetes_ingress_metrics_nodeexporter" {
+  network_security_group_id = oci_core_network_security_group.kubernetes.id
+  protocol                  = 6
+  direction                 = "INGRESS"
+  source                    = oci_core_network_security_group.kubernetes.id
+  source_type               = "NETWORK_SECURITY_GROUP"
+  tcp_options {
+    destination_port_range {
+      min = 9100
+      max = 9100
+    }
+  }
+}
+
 resource "oci_core_network_security_group_security_rule" "kubernetes_egress" {
   network_security_group_id = oci_core_network_security_group.kubernetes.id
   protocol                  = "all"
