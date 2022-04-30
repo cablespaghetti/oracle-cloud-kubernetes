@@ -28,8 +28,7 @@ With the account created and `terraform.tfvars` file populated, creating your cl
 If you want to use [Remote State](https://www.terraform.io/docs/language/state/remote.html) for your Terraform state file you will need to perform additional configuration. I am storing mine in OCI Object Storage using a Pre Authenticated Request URL, using the method in [this medium post](https://medium.com/oracledevs/storing-terraform-remote-state-to-oracle-cloud-infrastructure-object-storage-b32fe7402781). You could also use Oracle Cloud's [Resource Manager](https://docs.oracle.com/en-us/iaas/Content/ResourceManager/Concepts/resourcemanager.htm) managed Terraform service.
 
 ## Connecting to your Kubernetes Cluster
-
-### OKE
+### OKE
 
 The Terraform creates a `generated` directory containing your kubeconfig file. You can either use this where it is by running `export KUBECONFIG=/path/to/generated/kubeconfig` or copy it to the default path used by `kubectl` at `~/.kube/config`.
 
