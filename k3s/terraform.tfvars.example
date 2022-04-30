@@ -1,0 +1,3 @@
+tenancy_ocid        = "ocid1.tenancy.oc1..stuff"
+region              = "uk-london-1"
+ssh_public_key_path = "~/.ssh/id_rsa.pub"
