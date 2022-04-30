@@ -1,13 +1,13 @@
-# Kubernetes for free using Oracle Cloud Always Free resources
+# Kubernetes using Oracle Cloud Always Free resources
 
-Uses Terraform and Oracle's modules, to create a Kubernetes cluster using only "Always Free" resources on Oracle Cloud using their Container Engine For Kubernetes service and Ampere ARM nodes. You can then choose to install a number of services on the new cluster:
+This repository contains two methods of getting a working Kubernetes cluster on Oracle Cloud using their Always Free resources.
 
-* [Longhorn](https://longhorn.io) for replicated persistent storage on the node root volumes. You can also configure backups to S3 compatible object storage if you like.
-* [Cert Manager](https://cert-manager.io/) for TLS certificate generation. I use this for Ingress and there is YAML provided for a self-signed cluster provisioner which is fine as I'm using Cloudflare.
-* [Nginx Ingress Controller](https://kubernetes.github.io/ingress-nginx/) using the Always Free 10Mb Load Balancer for web traffic ingress into the cluster.
-* [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) to deployment Prometheus and AlertManager for monitoring and alerting.
-* [Kubernetes Metrics Server](https://github.com/kubernetes-sigs/metrics-server) to allow pod autoscaling and certain metrics to function correctly.
-* [Grafana Loki](https://grafana.com/oss/loki/) for lightweight log aggregation.
+1. Using their managed Kubernetes service: Oracle Container Engine for Kubernetes (OKE)
+2. Using k3s with a highly available (embedded etcd) control plane
+
+In both cases the nodes will be of the Ampere ARM64 variety, because you get 4 cores and 24GB RAM worth of nodes this way. You only get a couple of 1 core 1GB RAM nodes using x86 processors.
+
+I make no promises to keep this repo up to date, but it should serve as a good example of how to get started with Kubernetes on Oracle Cloud Infrastructure.
 
 ## Creating the cluster
 
@@ -25,11 +25,11 @@ I recommend you setup [Budgets](https://docs.oracle.com/en-us/iaas/Content/Billi
 
 With the account created and `terraform.tfvars` file populated, creating your cluster should then be as simple as opening a terminal in the `terraform` directory and running `terraform init` followed by `terraform apply`.
 
-If you want to use [Remote State](https://www.terraform.io/docs/language/state/remote.html) for your Terraform state file you will need to perform additional configuration. I am storing mine in OCI Object Storage using a Pre Authenticated Request URL, using the method in [this medium post](https://medium.com/oracledevs/storing-terraform-remote-state-to-oracle-cloud-infrastructure-object-storage-b32fe7402781). You could also use Oracle Cloud's [Resource Manager](https://docs.oracle.com/en-us/iaas/Content/ResourceManager/Concepts/resourcemanager.htm) managed Terraform service which has just released support for Terraform 1.0.
-
-Note: Unfortunately the Terraform Provider doesn't have a darwin_arm64 build, so if you're on an M1 Mac you'll need to download the amd64 binary of Terraform to run under Rosetta 2 for the time being. [Here is the GitHub Issue](https://github.com/terraform-providers/terraform-provider-oci/issues/1322).
+If you want to use [Remote State](https://www.terraform.io/docs/language/state/remote.html) for your Terraform state file you will need to perform additional configuration. I am storing mine in OCI Object Storage using a Pre Authenticated Request URL, using the method in [this medium post](https://medium.com/oracledevs/storing-terraform-remote-state-to-oracle-cloud-infrastructure-object-storage-b32fe7402781). You could also use Oracle Cloud's [Resource Manager](https://docs.oracle.com/en-us/iaas/Content/ResourceManager/Concepts/resourcemanager.htm) managed Terraform service.
 
 ## Connecting to your Kubernetes Cluster
+
+### OKE
 
 The Terraform creates a `generated` directory containing your kubeconfig file. You can either use this where it is by running `export KUBECONFIG=/path/to/generated/kubeconfig` or copy it to the default path used by `kubectl` at `~/.kube/config`.
 
@@ -37,39 +37,8 @@ At this point you will need to make sure you have the [OCI CLI](https://docs.ora
 
 You should now be able to run commands like `kubectl get no` and see you have a cluster up and running with two nodes.
 
-## Installing services on the cluster
+### k3s
 
-The [OKE Terraform module](https://github.com/oracle-terraform-modules/terraform-oci-oke) this repository uses has many options; one of which is to install a few things to to your cluster such as Metrics Server. However it does this through the use of Bastion and Operator instances. As we don't want to waste our money on these instances when the OKE API is accessible straight from the Internet, we'll just install the services we need from the local machine instead.
+You will need to use Oracle managed bastion service (already configured by the terraform) to SSH into one of the control plane nodes. The username will be `opc`. You will find a kubeconfig file in `/etc/rancher/k3s/k3s.yaml` but for it to work locally you will need to change the IP address to that of your Load Balancer using https on port 6443.
 
-I am partial to a tool called [helmfile](https://github.com/roboll/helmfile) which makes it possible to manage Helm releases in a YAML configuration file. You will need this utility installed to apply the configuration in the `services` directory. Installation should be as simple as running `helmfile apply` in the services directory followed by `kubectl apply -f yaml/`.
-
-If you want the emails from Prometheus AlertManager to reach you, you will need to reconfigure the SMTP details in the `values/kube-prometheus-stack.yaml` file. These credentials will then obviously be stored in plain text in Git, so I recommend looking into something like the [helm-secrets integration in Helmfile](https://github.com/roboll/helmfile#environment-secrets).
-
-## Example Ingress Configuration
-
-When you deploy services on the cluster you can make them web-facing with a self-signed certificate using a configuration like this:
-
-```
-apiVersion: extensions/v1beta1
-kind: Ingress
-metadata:
-  name: wordpress
-  labels:
-    app: wordpress
-  annotations:
-    cert-manager.io/cluster-issuer: selfsigned
-    nginx.ingress.kubernetes.io/from-to-www-redirect: "true"
-spec:
-  rules:
-  - host: example.com
-    http:
-      paths:
-      - path: /
-        backend:
-          serviceName: wordpress
-          servicePort: 80
-  tls:
-  - hosts:
-    - example.com
-    secretName: wordpress-cert
-```
+You will see there are 4 nodes; 3 control plane and 1 worker. All with 1 CPU core and 6 GB RAM.
