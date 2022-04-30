@@ -24,7 +24,7 @@ variable "cidr_block" {
 
 variable "k3s_version" {
   description = "The GitHub tag to use for k3s installation"
-  default     = "v1.23.5+k3s1"
+  default     = "v1.23.6+k3s1"
 }
 
 locals {
