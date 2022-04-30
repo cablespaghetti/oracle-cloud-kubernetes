@@ -13,7 +13,7 @@ I make no promises to keep this repo up to date, but it should serve as a good e
 
 ### Initial configuration
 
-You will need an account on [Oracle Cloud](https://cloud.oracle.com). You'll be given some credits (£250 in the UK) initially but you shouldn't see them being used by anything in this repository; everything should be covered by the [Always Free resourcs](https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm) and OKE is free anyway.
+You will need an account on [Oracle Cloud](https://cloud.oracle.com). You'll be given some credits (£250 in the UK) initially but you shouldn't see them being used by anything in this repository; everything should be covered by the [Always Free resources](https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm) and OKE is free anyway.
 
 When your account is activated you'll need to install and configure the [OCI CLI](https://docs.oracle.com/en-us/iaas/Content/API/Concepts/cliconcepts.htm) get some details to populate the `terraform.tfvars` file, which are used to authentiate to your account. The information of how to get these details are in [Oracle's Documentation](https://docs.oracle.com/en-us/iaas/Content/API/SDKDocs/terraformproviderconfiguration.htm#configuring_the_terraform_provider).
 
