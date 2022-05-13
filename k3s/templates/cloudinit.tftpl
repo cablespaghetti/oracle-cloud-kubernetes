@@ -29,10 +29,10 @@ instance_id=$(oci-metadata -g id --value-only)
 
 if [[ "$first_instance" == "$instance_id" ]]; then
     echo "I'm the first! Woohoo! Cluster init!"
-    export INSTALL_K3S_EXEC="server --disable traefik --disable-cloud-controller --resolv-conf /etc/resolv-k3s.conf --cluster-init --kubelet-arg kube-reserved=cpu=50m,memory=1536Mi,ephemeral-storage=1Gi --kubelet-arg system-reserved=cpu=10m,memory=640Mi,ephemeral-storage=1Gi"
+    export INSTALL_K3S_EXEC="server --disable traefik --disable local-storage --disable-cloud-controller --resolv-conf /etc/resolv-k3s.conf --cluster-init --kubelet-arg kube-reserved=cpu=50m,memory=1536Mi,ephemeral-storage=1Gi --kubelet-arg system-reserved=cpu=10m,memory=640Mi,ephemeral-storage=1Gi"
 else
     echo "Someone else got there first. Cluster join..."
-    export INSTALL_K3S_EXEC="server --disable traefik --disable-cloud-controller --resolv-conf /etc/resolv-k3s.conf --server https://${lb_ip_address}:6443 --kubelet-arg kube-reserved=cpu=50m,memory=1536Mi,ephemeral-storage=1Gi --kubelet-arg system-reserved=cpu=10m,memory=640Mi,ephemeral-storage=1Gi"
+    export INSTALL_K3S_EXEC="server --disable traefik --disable local-storage --disable-cloud-controller --resolv-conf /etc/resolv-k3s.conf --server https://${lb_ip_address}:6443 --kubelet-arg kube-reserved=cpu=50m,memory=1536Mi,ephemeral-storage=1Gi --kubelet-arg system-reserved=cpu=10m,memory=640Mi,ephemeral-storage=1Gi"
 fi
 %{ else }
 export INSTALL_K3S_EXEC="agent --resolv-conf /etc/resolv-k3s.conf --server https://${lb_ip_address}:6443 --kubelet-arg kube-reserved=cpu=10m,memory=160Mi,ephemeral-storage=1Gi --kubelet-arg system-reserved=cpu=10m,memory=640Mi,ephemeral-storage=1Gi"
